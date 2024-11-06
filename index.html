@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Creative Drawing App</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #f0f0f0;
+            font-family: Arial, sans-serif;
+            flex-direction: column;
+        }
+
+        canvas {
+            border: 2px solid #000;
+            background-color: #fff;
+            cursor: crosshair;
+            touch-action: none;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+
+        .controls > * {
+            margin: 5px;
+        }
+
+        button, select, input[type="color"], input[type="range"] {
+            padding: 10px;
+            background-color: #3498db;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        button:hover, select:hover, input[type="color"]:hover, input[type="range"]:hover {
+            background-color: #2980b9;
+        }
+
+        #colorPicker {
+            cursor: pointer;
+        }
+
+        .credits {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            font-size: 14px;
+            font-weight: bold;
+            color: #333;
+        }
+
+    </style>
+</head>
+<body>
+
+    <!-- Credits -->
+    <div class="credits">Made by Abdullah Mahmoud</div>
+
+    <!-- Canvas -->
+    <canvas id="drawCanvas" width="90%" height="60%"></canvas>
+
+    <!-- Controls -->
+    <div class="controls">
+        <input type="color" id="colorPicker" value="#000000" title="Choose Brush Color">
+        <input type="range" id="brushSize" min="1" max="50" value="5" title="Change Brush Size">
+        <select id="brushStyle" title="Select Brush Style">
+            <option value="solid">Solid</option>
+            <option value="dashed">Dashed</option>
+            <option value="dotted">Dotted</option>
+        </select>
+        <input type="color" id="bgColorPicker" value="#ffffff" title="Change Background Color">
+        <button id="clearButton">Clear</button>
+        <button id="saveButton">Save Drawing</button>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('drawCanvas');
+        const ctx = canvas.getContext('2d');
+        const colorPicker = document.getElementById('colorPicker');
+        const brushSize = document.getElementById('brushSize');
+        const brushStyle = document.getElementById('brushStyle');
+        const bgColorPicker = document.getElementById('bgColorPicker');
+        const clearButton = document.getElementById('clearButton');
+        const saveButton = document.getElementById('saveButton');
+
+        let drawing = false;
+        let currentColor = '#000000';
+        let currentBrushSize = 5;
+        let currentBrushStyle = 'solid';
+        let lastX = 0;
+        let lastY = 0;
+
+        // Set up drawing
+        function startDrawing(e) {
+            e.preventDefault();
+            drawing = true;
+            const position = getMousePosition(e);
+            lastX = position.x;
+            lastY = position.y;
+        }
+
+        function stopDrawing() {
+            drawing = false;
+        }
+
+        function draw(e) {
+            if (!drawing) return;
+
+            const position = getMousePosition(e);
+            ctx.strokeStyle = currentColor;
+            ctx.lineWidth = currentBrushSize;
+            ctx.lineCap = 'round';
+
+            // Brush style effects
+            if (currentBrushStyle === 'dashed') {
+                ctx.setLineDash([10, 5]);
+            } else if (currentBrushStyle === 'dotted') {
+                ctx.setLineDash([2, 4]);
+            } else {
+                ctx.setLineDash([]); // Solid line
+            }
+
+            // Drawing with glow effect
+            ctx.shadowBlur = 10;
+            ctx.shadowColor = currentColor;
+
+            ctx.beginPath();
+            ctx.moveTo(lastX, lastY);
+            ctx.lineTo(position.x, position.y);
+            ctx.stroke();
+
+            lastX = position.x;
+            lastY = position.y;
+        }
+
+        // Get mouse position for both touch and mouse events
+        function getMousePosition(e) {
+            let x, y;
+            if (e.touches) {
+                x = e.touches[0].clientX - canvas.offsetLeft;
+                y = e.touches[0].clientY - canvas.offsetTop;
+            } else {
+                x = e.offsetX;
+                y = e.offsetY;
+            }
+            return { x, y };
+        }
+
+        // Event listeners for brush options
+        colorPicker.addEventListener('input', (e) => {
+            currentColor = e.target.value;
+        });
+
+        brushSize.addEventListener('input', (e) => {
+            currentBrushSize = e.target.value;
+        });
+
+        brushStyle.addEventListener('change', (e) => {
+            currentBrushStyle = e.target.value;
+        });
+
+        bgColorPicker.addEventListener('input', (e) => {
+            canvas.style.backgroundColor = e.target.value;
+        });
+
+        // Clear the canvas
+        clearButton.addEventListener('click', () => {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+        });
+
+        // Save the drawing as an image
+        saveButton.addEventListener('click', () => {
+            const link = document.createElement('a');
+            link.download = 'drawing.png';
+            link.href = canvas.toDataURL();
+            link.click();
+        });
+
+        // Event listeners for drawing (mouse and touch events)
+        canvas.addEventListener('mousedown', startDrawing);
+        canvas.addEventListener('mousemove', draw);
+        canvas.addEventListener('mouseup', stopDrawing);
+        canvas.addEventListener('mouseout', stopDrawing);
+
+        // Touch events for mobile
+        canvas.addEventListener('touchstart', startDrawing);
+        canvas.addEventListener('touchmove', draw);
+        canvas.addEventListener('touchend', stopDrawing);
+        canvas.addEventListener('touchcancel', stopDrawing);
+
+        // Adjust canvas size for mobile devices (responsive)
+        window.addEventListener('resize', () => {
+            canvas.width = window.innerWidth * 0.9;
+            canvas.height = window.innerHeight * 0.6;
+        });
+
+        // Initialize canvas size
+        window.dispatchEvent(new Event('resize'));
+
+    </script>
+
+</body>
+</html>
